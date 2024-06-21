@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class IndexService {
 
-        private final List<String> indicesToCreate = List.of(Indices.VEHICLE_INDEX);
+    private final List<String> indicesToCreate = List.of(Indices.VEHICLE_INDEX);
     private final ElasticsearchClient elasticsearchClient;
     private final ResourceLoader resourceLoader;
 
