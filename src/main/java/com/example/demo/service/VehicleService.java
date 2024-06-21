@@ -71,7 +71,7 @@ public class VehicleService {
     searchRequest.getFields().forEach(field -> {
 
       try {
-        Query query = createQuery(field, searchRequest.getSearchTerm());
+        Query query = createMatchQuery(field, searchRequest.getSearchTerm());
 
         SearchResponse<Vehicle> response = elasticsearchClient.search(search -> search
                 .index(Indices.VEHICLE_INDEX)
@@ -90,7 +90,7 @@ public class VehicleService {
     return vehicles;
   }
 
-  private Query createQuery(String field, String searchTerm) {
+  private Query createMatchQuery(String field, String searchTerm) {
     return MatchQuery.of(builder -> builder
         .field(field)
         .query(searchTerm)
