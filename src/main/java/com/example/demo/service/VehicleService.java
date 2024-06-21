@@ -1,9 +1,15 @@
 package com.example.demo.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.example.demo.document.Vehicle;
+import com.example.demo.dto.SearchRequest;
 import com.example.demo.helper.Indices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +17,9 @@ import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -46,6 +55,64 @@ public class VehicleService {
 
       throw new ResourceNotFoundException("Vehicle not found.");
     }
+  }
+
+  public Set<Vehicle> searchForVehicle(SearchRequest searchRequest) {
+    if (searchRequest == null) {
+      return null;
+    }
+
+    if (searchRequest.getFields() == null || searchRequest.getFields().isEmpty()) {
+      return null;
+    }
+
+    Set<Vehicle> vehicles = new HashSet<>();
+
+    searchRequest.getFields().forEach(field -> {
+
+      try {
+        Query query = createMatchQuery(field, searchRequest.getSearchTerm());
+
+        SearchResponse<Vehicle> response = elasticsearchClient.search(search -> search
+                .index(Indices.VEHICLE_INDEX)
+                .query(query),
+            Vehicle.class
+        );
+
+        vehicles.addAll(getVehicles(response, vehicles));
+
+      } catch (IOException e) {
+        log.error(e.getMessage());
+      }
+
+    });
+
+    return vehicles;
+  }
+
+  private Query createMatchQuery(String field, String searchTerm) {
+    return MatchQuery.of(builder -> builder
+        .field(field)
+        .query(searchTerm)
+        .operator(Operator.And)
+    )._toQuery();
+  }
+
+  private static Set<Vehicle> getVehicles(SearchResponse<Vehicle> response, Set<Vehicle> vehicles) {
+    List<Hit<Vehicle>> hits = response.hits().hits();
+
+    for (Hit<Vehicle> hit: hits) {
+      if (hit.source() == null) {
+        continue;
+      }
+
+      Vehicle vehicle = hit.source();
+      vehicles.add(vehicle);
+
+      log.info("Found vehicle " + vehicle.getName() + ", score " + hit.source());
+    }
+
+    return vehicles;
   }
 
 }
