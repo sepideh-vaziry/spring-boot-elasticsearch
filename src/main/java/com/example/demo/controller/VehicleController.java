@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,10 +33,10 @@ public class VehicleController {
   }
 
   @PostMapping("/search")
-  public ResponseEntity<Set<Vehicle>> searchVehicle(
+  public ResponseEntity<List<Vehicle>> searchVehicle(
       @RequestBody SearchRequest request
   ) {
-    Set<Vehicle> vehicles = vehicleService.searchForVehicle(request);
+    List<Vehicle> vehicles = vehicleService.searchForVehicle(request);
 
     return ResponseEntity.ok(vehicles);
   }

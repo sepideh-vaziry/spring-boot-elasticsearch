@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -8,6 +10,7 @@ import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.util.ObjectBuilder;
 import com.example.demo.document.Vehicle;
 import com.example.demo.dto.SearchRequest;
 import com.example.demo.helper.Indices;
@@ -17,9 +20,8 @@ import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -57,7 +59,7 @@ public class VehicleService {
     }
   }
 
-  public Set<Vehicle> searchForVehicle(SearchRequest searchRequest) {
+  public List<Vehicle> searchForVehicle(SearchRequest searchRequest) {
     if (searchRequest == null) {
       return null;
     }
@@ -66,20 +68,31 @@ public class VehicleService {
       return null;
     }
 
-    Set<Vehicle> vehicles = new HashSet<>();
+    ArrayList<Vehicle> vehicles = new ArrayList<>();
 
     searchRequest.getFields().forEach(field -> {
 
       try {
-        Query query = createMatchQuery(field, searchRequest.getSearchTerm());
+        SearchResponse<Vehicle> response;
 
-        SearchResponse<Vehicle> response = elasticsearchClient.search(search -> search
-                .index(Indices.VEHICLE_INDEX)
-                .query(query),
-            Vehicle.class
-        );
+        if (searchRequest.getSortBy() != null && !searchRequest.getSortBy().isBlank()) {
+          response = elasticsearchClient.search(
+              search -> search
+                  .index(Indices.VEHICLE_INDEX)
+                  .query(createMatchQuery(field, searchRequest.getSearchTerm()))
+                  .sort(builder -> createSort(builder, searchRequest.getSortBy(), searchRequest.getOrder())),
+              Vehicle.class
+          );
+        } else {
+          response = elasticsearchClient.search(
+              search -> search
+                  .index(Indices.VEHICLE_INDEX)
+                  .query(createMatchQuery(field, searchRequest.getSearchTerm())),
+              Vehicle.class
+          );
+        }
 
-        vehicles.addAll(getVehicles(response, vehicles));
+        vehicles.addAll(getVehicles(response));
 
       } catch (IOException e) {
         log.error(e.getMessage());
@@ -98,8 +111,9 @@ public class VehicleService {
     )._toQuery();
   }
 
-  private static Set<Vehicle> getVehicles(SearchResponse<Vehicle> response, Set<Vehicle> vehicles) {
+  private List<Vehicle> getVehicles(SearchResponse<Vehicle> response) {
     List<Hit<Vehicle>> hits = response.hits().hits();
+    ArrayList<Vehicle> vehicles = new ArrayList<>(hits.size());
 
     for (Hit<Vehicle> hit: hits) {
       if (hit.source() == null) {
@@ -113,6 +127,13 @@ public class VehicleService {
     }
 
     return vehicles;
+  }
+
+  private ObjectBuilder<SortOptions> createSort(SortOptions.Builder sortBuilder, String sortBy, SortOrder sortOrder) {
+    return sortBuilder.field(f -> f
+        .field(sortBy)
+        .order(sortOrder == null ? SortOrder.Asc : sortOrder)
+    );
   }
 
 }
