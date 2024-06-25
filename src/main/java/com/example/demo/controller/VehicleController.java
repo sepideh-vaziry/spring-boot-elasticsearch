@@ -45,10 +45,11 @@ public class VehicleController {
 
   @GetMapping("/in-range")
   public ResponseEntity<List<Vehicle>> getVehicleInRange(
+      @RequestParam String search,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date fromDate,
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date toDate
   ) {
-    List<Vehicle> vehicles = vehicleService.getVehicleInRange(fromDate, toDate);
+    List<Vehicle> vehicles = vehicleService.getVehicleInRange(search, fromDate, toDate);
 
     return ResponseEntity.ok(vehicles);
   }

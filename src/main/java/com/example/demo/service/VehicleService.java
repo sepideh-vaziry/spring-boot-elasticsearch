@@ -3,10 +3,7 @@ package com.example.demo.service;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -106,14 +103,15 @@ public class VehicleService {
     return vehicles;
   }
 
-  public List<Vehicle> getVehicleInRange(Date fromDate, Date toDate) {
+  public List<Vehicle> getVehicleInRange(String searchTerm, Date fromDate, Date toDate) {
     ArrayList<Vehicle> vehicles = new ArrayList<>();
 
     try {
       SearchResponse<Vehicle> response = elasticsearchClient.search(
           search -> search
               .index(Indices.VEHICLE_INDEX)
-              .query(createRangeQuery("created", fromDate, toDate)),
+              .query(createBoolQuery(searchTerm
+                  , fromDate, toDate)),
           Vehicle.class
       );
 
@@ -139,6 +137,19 @@ public class VehicleService {
         .field(field)
         .gte(JsonData.of(fromDate))
         .lte(JsonData.of(toDate))
+    )._toQuery();
+  }
+
+  private Query createBoolQuery(String search, Date fromDate, Date toDate) {
+    /*
+    must means: Clauses that must match for the document to be included.
+
+    should means: If these clauses match, they increase the _score; otherwise, they have no effect.
+    They are simply used to refine the relevance score for each document.
+     */
+    return BoolQuery.of(builder -> builder
+        .must(createMatchQuery("name", search))
+        .must(createRangeQuery("created", fromDate, toDate))
     )._toQuery();
   }
 
