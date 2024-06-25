@@ -6,10 +6,12 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
 import com.example.demo.document.Vehicle;
 import com.example.demo.dto.SearchRequest;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -103,11 +106,39 @@ public class VehicleService {
     return vehicles;
   }
 
+  public List<Vehicle> getVehicleInRange(Date fromDate, Date toDate) {
+    ArrayList<Vehicle> vehicles = new ArrayList<>();
+
+    try {
+      SearchResponse<Vehicle> response = elasticsearchClient.search(
+          search -> search
+              .index(Indices.VEHICLE_INDEX)
+              .query(createRangeQuery("created", fromDate, toDate)),
+          Vehicle.class
+      );
+
+      vehicles.addAll(getVehicles(response));
+
+    } catch (IOException e) {
+      log.error(e.getMessage());
+    }
+
+    return vehicles;
+  }
+
   private Query createMatchQuery(String field, String searchTerm) {
     return MatchQuery.of(builder -> builder
         .field(field)
         .query(searchTerm)
         .operator(Operator.And)
+    )._toQuery();
+  }
+
+  private Query createRangeQuery(String field, Date fromDate , Date toDate) {
+    return RangeQuery.of(builder -> builder
+        .field(field)
+        .gte(JsonData.of(fromDate))
+        .lte(JsonData.of(toDate))
     )._toQuery();
   }
 

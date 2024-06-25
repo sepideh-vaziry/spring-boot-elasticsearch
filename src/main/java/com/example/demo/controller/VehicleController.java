@@ -4,9 +4,11 @@ import com.example.demo.document.Vehicle;
 import com.example.demo.dto.SearchRequest;
 import com.example.demo.service.VehicleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -37,6 +39,16 @@ public class VehicleController {
       @RequestBody SearchRequest request
   ) {
     List<Vehicle> vehicles = vehicleService.searchForVehicle(request);
+
+    return ResponseEntity.ok(vehicles);
+  }
+
+  @GetMapping("/in-range")
+  public ResponseEntity<List<Vehicle>> getVehicleInRange(
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date fromDate,
+      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date toDate
+  ) {
+    List<Vehicle> vehicles = vehicleService.getVehicleInRange(fromDate, toDate);
 
     return ResponseEntity.ok(vehicles);
   }
