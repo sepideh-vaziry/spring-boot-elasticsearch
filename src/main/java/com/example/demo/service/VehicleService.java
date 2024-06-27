@@ -125,11 +125,11 @@ public class VehicleService {
   }
 
   public List<Vehicle> getAllVehicles(PagingSearchRequest searchRequest) {
-    int from = searchRequest.getPage() <= 0 ? 0 : searchRequest.getPage() * searchRequest.getSize();
-
     if (searchRequest == null) {
       return null;
     }
+
+    int from = searchRequest.getPage() <= 0 ? 0 : searchRequest.getPage() * searchRequest.getSize();
 
     if (searchRequest.getFields() == null || searchRequest.getFields().isEmpty()) {
       return null;
