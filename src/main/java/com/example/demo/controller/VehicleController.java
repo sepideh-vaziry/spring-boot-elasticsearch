@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.document.Vehicle;
+import com.example.demo.dto.PagingSearchRequest;
 import com.example.demo.dto.SearchRequest;
 import com.example.demo.service.VehicleService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,15 @@ public class VehicleController {
       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date toDate
   ) {
     List<Vehicle> vehicles = vehicleService.getVehicleInRange(search, fromDate, toDate);
+
+    return ResponseEntity.ok(vehicles);
+  }
+
+  @PostMapping("/paging-search")
+  public ResponseEntity<List<Vehicle>> getAllVehicles(
+      @RequestBody PagingSearchRequest request
+  ) {
+    List<Vehicle> vehicles = vehicleService.getAllVehicles(request);
 
     return ResponseEntity.ok(vehicles);
   }

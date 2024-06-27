@@ -11,6 +11,7 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
 import com.example.demo.document.Vehicle;
+import com.example.demo.dto.PagingSearchRequest;
 import com.example.demo.dto.SearchRequest;
 import com.example.demo.helper.Indices;
 import lombok.RequiredArgsConstructor;
@@ -110,8 +111,7 @@ public class VehicleService {
       SearchResponse<Vehicle> response = elasticsearchClient.search(
           search -> search
               .index(Indices.VEHICLE_INDEX)
-              .query(createBoolQuery(searchTerm
-                  , fromDate, toDate)),
+              .query(createBoolQuery(searchTerm, fromDate, toDate)),
           Vehicle.class
       );
 
@@ -120,6 +120,42 @@ public class VehicleService {
     } catch (IOException e) {
       log.error(e.getMessage());
     }
+
+    return vehicles;
+  }
+
+  public List<Vehicle> getAllVehicles(PagingSearchRequest searchRequest) {
+    if (searchRequest == null) {
+      return null;
+    }
+
+    int from = searchRequest.getPage() <= 0 ? 0 : searchRequest.getPage() * searchRequest.getSize();
+
+    if (searchRequest.getFields() == null || searchRequest.getFields().isEmpty()) {
+      return null;
+    }
+
+    ArrayList<Vehicle> vehicles = new ArrayList<>();
+
+    searchRequest.getFields().forEach(field -> {
+
+      try {
+        SearchResponse<Vehicle> response = elasticsearchClient.search(
+            search -> search
+                .index(Indices.VEHICLE_INDEX)
+                .from(from)
+                .size(searchRequest.getSize())
+                .postFilter(createMatchQuery(field, searchRequest.getSearchTerm())),
+            Vehicle.class
+        );
+
+        vehicles.addAll(getVehicles(response));
+
+      } catch (IOException e) {
+        log.error(e.getMessage());
+      }
+
+    });
 
     return vehicles;
   }
